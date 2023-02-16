@@ -8,7 +8,7 @@ data:
     listen       80;
     server_name  localhost;
     location / {
-        proxy_pass          http://backend:8000;
+        proxy_pass          http://backend.default.svc.cluster.local:8000;
         proxy_http_version  1.1;
       }
     }
@@ -33,23 +33,19 @@ spec:
       containers:
       - name: nginx
         image: nginx:latest
-        resources:
-          limits:
-            memory: "128Mi"
-            cpu: "500m"
         ports:
         - containerPort: 80
         volumeMounts:
-        - name: config
+        - name: pod-volume
           mountPath: /etc/nginx/conf.d
           readOnly: true
       volumes:
-      - name: config
+      - name: pod-volume
         configMap:
           name: nginx-conf
           items:
-          - key: "nginx.conf
-            path: "ninx.conf
+          - key: nginx.conf
+            path: ninx.conf
 
 ---
 

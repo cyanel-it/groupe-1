@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: db-secret
+stringData:
+  # file with db password to mount on /run/secrets/db-password
+  db-password: |-
+    password
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-config
+data:
+  db_url: mysql.default.svc.cluster.local
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  ports:
+  - protocol: TCP
+    port: 8000
+    targetPort: 8000
+  selector:
+    app: backend
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  selector:
+    matchLabels:
+      app: backend
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        image: my-go-iamge:1.2
+        imagePullPolicy: Never
+        command:
+        env:
+          - name: DB_URL
+            valueFrom:
+              configMapKeyRef:
+                name: db-config
+                key: db_url
+        ports:
+        - containerPort: 8000
+        volumeMounts:
+        - name: db-secret
+          mountPath: "/var/run/secrets"
+          readOnly: true
+      volumes:
+        # You set volumes at the Pod level, then mount them into containers inside that Pod
+        - name: db-secret
+          secret:
+            # Provide the name of the ConfigMap you want to mount.
+            secretName: db-secret
+            # An array of keys from the ConfigMap to create as files
+            items:
+            - key: "db-password"
+              path: "db-password"
